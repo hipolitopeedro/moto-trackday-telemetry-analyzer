@@ -3,6 +3,8 @@
 ![Python](https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white)
 ![Telemetry](https://img.shields.io/badge/Motorsport-Telemetry_%26_Physics-E10600?style=for-the-badge)
 
+> **Live Interactive Telemetry & Pit-Lane Dashboard (GitHub Pages):** [https://hipolitopeedro.github.io/moto-trackday-telemetry-analyzer/](https://hipolitopeedro.github.io/moto-trackday-telemetry-analyzer/)
+>
 > **English:** Personal motorsport engineering project built for **Motorcycle Trackdays**. Includes a GPS/IMU telemetry analyzer (lap times, sector splits, corner apex speeds, braking G-force, and lean angle estimation) and a pit-lane mechanical setup calculator (hot/cold tire pressure thermodynamics, suspension sag validation, and sprocket gearing top-speed simulator).
 >
 > **Português:** Projeto pessoal voltado para **Trackday de Motos**. Inclui um analisador de telemetria GPS/IMU (tempos de volta, parciais de setor, velocidade mínima de apex, força G de frenagem e estimativa de ângulo de inclinação / *lean angle*) e uma calculadora mecânica de box (compensação térmica de calibragem de pneus a frio/quente, validação de *Sag* de suspensão e simulação de relação coroa/pinhão).

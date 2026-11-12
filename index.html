@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Motorcycle Trackday Telemetry & Pit-Lane Setup Analyzer</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body { background-color: #0b0f17; color: #e2e8f0; font-family: ui-sans-serif, system-ui, -apple-system, sans-serif; }
+    .card { background-color: #151c28; border: 1px solid #263147; border-radius: 0.75rem; }
+    .accent-red { color: #ef4444; }
+    .bg-accent-red { background-color: #ef4444; }
+  </style>
+</head>
+<body class="min-h-screen pb-16">
+  <!-- Header -->
+  <header class="border-b border-slate-800 bg-[#0f1520] sticky top-0 z-20">
+    <div class="max-w-7xl mx-auto px-4 py-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+      <div>
+        <div class="flex items-center gap-2">
+          <span class="px-2.5 py-0.5 text-xs font-bold uppercase tracking-wider bg-red-600 text-white rounded">Trackday Telemetry</span>
+          <span class="text-xs text-slate-400 font-mono">IMU + GPS 10Hz Logger & Pit-Lane Setup Suite</span>
+        </div>
+        <h1 class="text-xl md:text-2xl font-bold text-white mt-1">Motorcycle Trackday Telemetry & Pit-Lane Setup Analyzer</h1>
+      </div>
+      <div class="flex items-center gap-3">
+        <a href="https://github.com/hipolitopeedro/moto-trackday-telemetry-analyzer" target="_blank" class="px-3 py-1.5 text-xs font-semibold rounded border border-slate-700 hover:bg-slate-800 text-slate-200 transition">
+          Ver Código no GitHub
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-4 mt-6 space-y-8">
+    <!-- Top KPIs -->
+    <section class="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div class="card p-4">
+        <p class="text-xs uppercase tracking-wider text-slate-400">Melhor Volta (Lap 2)</p>
+        <p class="text-2xl font-bold text-emerald-400 font-mono mt-1" id="kpi-best-lap">01:36.800</p>
+        <p class="text-xs text-slate-400 mt-1">Circuito dos Cristais (4.42 km)</p>
+      </div>
+      <div class="card p-4">
+        <p class="text-xs uppercase tracking-wider text-slate-400">Top Speed (Reta Principal)</p>
+        <p class="text-2xl font-bold text-red-400 font-mono mt-1" id="kpi-top-speed">243.1 km/h</p>
+        <p class="text-xs text-slate-400 mt-1">13,420 RPM (6ª Marcha)</p>
+      </div>
+      <div class="card p-4">
+        <p class="text-xs uppercase tracking-wider text-slate-400">Ângulo de Inclinação Máx.</p>
+        <p class="text-2xl font-bold text-amber-400 font-mono mt-1" id="kpi-max-lean">54.0° (Esq / Dir)</p>
+        <p class="text-xs text-slate-400 mt-1">Pico Lateral: 1.38 G</p>
+      </div>
+      <div class="card p-4">
+        <p class="text-xs uppercase tracking-wider text-slate-400">Frenagem Máxima</p>
+        <p class="text-2xl font-bold text-sky-400 font-mono mt-1" id="kpi-max-brake">11.4 bar (-1.18 G)</p>
+        <p class="text-xs text-slate-400 mt-1">Entrada Curva 1 (243 → 88 km/h)</p>
+      </div>
+    </section>
+
+    <!-- Telemetry Section -->
+    <section class="card p-5 space-y-5">
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800 pb-4">
+        <div>
+          <h2 class="text-lg font-bold text-white">1. Analisador de Telemetria por Volta (Velocidade, Lean Angle, TPS e Frenagem)</h2>
+          <p class="text-xs text-slate-400">Selecione as voltas da bateria para comparar velocidade de reta, velocidade mínima de contorno (apex) e inclinação</p>
+        </div>
+        <div class="flex items-center gap-2">
+          <button onclick="selectLap('all')" id="btn-all" class="px-3 py-1.5 text-xs font-semibold rounded bg-red-600 text-white">Comparar Todas</button>
+          <button onclick="selectLap(1)" id="btn-lap1" class="px-3 py-1.5 text-xs font-semibold rounded bg-slate-800 text-slate-300 hover:bg-slate-700">Volta 1 (01:38.450)</button>
+          <button onclick="selectLap(2)" id="btn-lap2" class="px-3 py-1.5 text-xs font-semibold rounded bg-slate-800 text-slate-300 hover:bg-slate-700">Volta 2 - BEST (01:36.800)</button>
+          <button onclick="selectLap(3)" id="btn-lap3" class="px-3 py-1.5 text-xs font-semibold rounded bg-slate-800 text-slate-300 hover:bg-slate-700">Volta 3 (01:37.210)</button>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div class="bg-[#0e141f] p-4 rounded-lg border border-slate-800">
+          <h3 class="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-3">Velocidade (km/h) por Setor da Pista</h3>
+          <canvas id="speedChart" height="190"></canvas>
+        </div>
+        <div class="bg-[#0e141f] p-4 rounded-lg border border-slate-800">
+          <h3 class="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-3">Lean Angle (° Inclinação) & Pressão de Freio Dianteiro (bar)</h3>
+          <canvas id="leanChart" height="190"></canvas>
+        </div>
+      </div>
+    </section>
+
+    <!-- Pit-Lane Calculators -->
+    <section class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <!-- Tire Pressure Calculator -->
+      <div class="card p-5 space-y-4">
+        <div class="border-b border-slate-800 pb-3">
+          <span class="text-xs font-mono text-red-400 uppercase">Termodinâmica / Lei de Gay-Lussac</span>
+          <h2 class="text-base font-bold text-white mt-0.5">Calibragem de Pneus (Frio vs. Quente)</h2>
+          <p class="text-xs text-slate-400">Calcula a pressão a frio ideal no box para atingir o alvo quente na pista/manta térmica.</p>
+        </div>
+
+        <div class="space-y-3 text-sm">
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="text-xs text-slate-400">Alvo Quente Diant. (PSI)</label>
+              <input type="number" step="0.5" id="hotFrontPsi" value="33.0" oninput="calcPitSetup()" class="w-full mt-1 bg-slate-900 border border-slate-700 rounded px-2.5 py-1.5 text-white font-mono" />
+            </div>
+            <div>
+              <label class="text-xs text-slate-400">Alvo Quente Tras. (PSI)</label>
+              <input type="number" step="0.5" id="hotRearPsi" value="26.5" oninput="calcPitSetup()" class="w-full mt-1 bg-slate-900 border border-slate-700 rounded px-2.5 py-1.5 text-white font-mono" />
+            </div>
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="text-xs text-slate-400">Temp. Ambiente Box (°C)</label>
+              <input type="number" id="ambientTemp" value="24" oninput="calcPitSetup()" class="w-full mt-1 bg-slate-900 border border-slate-700 rounded px-2.5 py-1.5 text-white font-mono" />
+            </div>
+            <div>
+              <label class="text-xs text-slate-400">Temp. Trabalho Pista (°C)</label>
+              <input type="number" id="trackTireTemp" value="82" oninput="calcPitSetup()" class="w-full mt-1 bg-slate-900 border border-slate-700 rounded px-2.5 py-1.5 text-white font-mono" />
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-[#0e141f] p-3.5 rounded-lg border border-slate-800 space-y-2">
+          <div class="flex justify-between items-center">
+            <span class="text-xs text-slate-400">Calibrar Dianteiro (Frio):</span>
+            <span class="text-base font-bold text-emerald-400 font-mono" id="outColdFront">25.7 PSI</span>
+          </div>
+          <div class="flex justify-between items-center">
+            <span class="text-xs text-slate-400">Calibrar Traseiro (Frio):</span>
+            <span class="text-base font-bold text-emerald-400 font-mono" id="outColdRear">20.2 PSI</span>
+          </div>
+          <div class="flex justify-between items-center border-t border-slate-800 pt-2 text-xs">
+            <span class="text-slate-400">Ganho Térmico Estimado:</span>
+            <span class="text-amber-400 font-mono" id="outPsiGain">+7.3 PSI / +6.3 PSI</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Suspension Sag Calculator -->
+      <div class="card p-5 space-y-4">
+        <div class="border-b border-slate-800 pb-3">
+          <span class="text-xs font-mono text-amber-400 uppercase">Geometria & Pré-Carga</span>
+          <h2 class="text-base font-bold text-white mt-0.5">Calculadora de Sag de Suspensão</h2>
+          <p class="text-xs text-slate-400">Avalia o Rider Sag (mm) dianteiro e traseiro para uso em Trackday (alvo 28–33 mm diant. / 25–30 mm tras.).</p>
+        </div>
+
+        <div class="space-y-3 text-sm">
+          <div class="grid grid-cols-3 gap-2">
+            <div>
+              <label class="text-xs text-slate-400">Diant. Livre (L0)</label>
+              <input type="number" id="fL0" value="120" oninput="calcPitSetup()" class="w-full mt-1 bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-white font-mono" />
+            </div>
+            <div>
+              <label class="text-xs text-slate-400">Estático (L1)</label>
+              <input type="number" id="fL1" value="98" oninput="calcPitSetup()" class="w-full mt-1 bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-white font-mono" />
+            </div>
+            <div>
+              <label class="text-xs text-slate-400">C/ Piloto (L2)</label>
+              <input type="number" id="fL2" value="89" oninput="calcPitSetup()" class="w-full mt-1 bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-white font-mono" />
+            </div>
+          </div>
+
+          <div class="grid grid-cols-3 gap-2">
+            <div>
+              <label class="text-xs text-slate-400">Tras. Livre (L0)</label>
+              <input type="number" id="rL0" value="130" oninput="calcPitSetup()" class="w-full mt-1 bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-white font-mono" />
+            </div>
+            <div>
+              <label class="text-xs text-slate-400">Estático (L1)</label>
+              <input type="number" id="rL1" value="118" oninput="calcPitSetup()" class="w-full mt-1 bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-white font-mono" />
+            </div>
+            <div>
+              <label class="text-xs text-slate-400">C/ Piloto (L2)</label>
+              <input type="number" id="rL2" value="102" oninput="calcPitSetup()" class="w-full mt-1 bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-white font-mono" />
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-[#0e141f] p-3.5 rounded-lg border border-slate-800 space-y-2">
+          <div class="flex justify-between items-center">
+            <span class="text-xs text-slate-400">Rider Sag Dianteiro:</span>
+            <span class="text-sm font-bold font-mono" id="outFrontSag">31 mm (IDEAL TRACKDAY)</span>
+          </div>
+          <div class="flex justify-between items-center">
+            <span class="text-xs text-slate-400">Rider Sag Traseiro:</span>
+            <span class="text-sm font-bold font-mono" id="outRearSag">28 mm (IDEAL TRACKDAY)</span>
+          </div>
+          <p class="text-xs text-slate-400 border-t border-slate-800 pt-2" id="outSagAdvice">
+            Equilíbrio neutro para entrada de curva e tração de saída.
+          </p>
+        </div>
+      </div>
+
+      <!-- Sprocket Gearing Simulator -->
+      <div class="card p-5 space-y-4">
+        <div class="border-b border-slate-800 pb-3">
+          <span class="text-xs font-mono text-sky-400 uppercase">Transmissão Final</span>
+          <h2 class="text-base font-bold text-white mt-0.5">Simulador de Relação (Pinhão / Coroa)</h2>
+          <p class="text-xs text-slate-400">Simula o impacto da troca de dentes na relação final e a velocidade máxima real em 6ª marcha.</p>
+        </div>
+
+        <div class="space-y-3 text-sm">
+          <div class="grid grid-cols-3 gap-2">
+            <div>
+              <label class="text-xs text-slate-400">Pinhão (Dentes)</label>
+              <input type="number" id="frontSprocket" min="13" max="17" value="15" oninput="calcPitSetup()" class="w-full mt-1 bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-white font-mono" />
+            </div>
+            <div>
+              <label class="text-xs text-slate-400">Coroa (Dentes)</label>
+              <input type="number" id="rearSprocket" min="38" max="52" value="45" oninput="calcPitSetup()" class="w-full mt-1 bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-white font-mono" />
+            </div>
+            <div>
+              <label class="text-xs text-slate-400">Corte RPM</label>
+              <input type="number" step="100" id="maxRpm" value="13500" oninput="calcPitSetup()" class="w-full mt-1 bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-white font-mono" />
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-[#0e141f] p-3.5 rounded-lg border border-slate-800 space-y-1.5 font-mono text-xs" id="gearingTable">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const sectors = ['Reta Box', 'Frenagem T1', 'Apex T1', 'Curva 2', 'Reta Oposta', 'Frenagem T3', 'Apex T3 (Cotovelo)', 'Curva 4 (Alta)', 'Chicane T5', 'Saída Reta'];
+    const lapData = {
+      1: {
+        speed: [228, 124, 74.5, 138, 238.4, 118, 69.0, 168, 112, 204],
+        lean:  [3,   18,  51.2, 46.0, 4,     22,  49.5, 50.1, 44.0, 12],
+        brake: [0,   10.2, 1.5, 0,    0,     9.8, 1.2,  0,    6.4,  0]
+      },
+      2: {
+        speed: [234, 131, 78.2, 145, 243.1, 122, 73.4, 176, 118, 212],
+        lean:  [2,   21,  54.0, 48.5, 3,     24,  52.8, 53.5, 46.5, 10],
+        brake: [0,   11.4, 1.8, 0,    0,     10.9, 1.5, 0,    7.1,  0]
+      },
+      3: {
+        speed: [231, 128, 76.9, 142, 241.8, 120, 71.8, 173, 115, 209],
+        lean:  [2,   19,  53.4, 47.2, 3,     23,  51.9, 52.4, 45.2, 11],
+        brake: [0,   11.0, 1.6, 0,    0,     10.5, 1.4, 0,    6.8,  0]
+      }
+    };
+
+    let speedChart, leanChart;
+
+    function initCharts() {
+      const ctxSpeed = document.getElementById('speedChart').getContext('2d');
+      speedChart = new Chart(ctxSpeed, {
+        type: 'line',
+        data: {
+          labels: sectors,
+          datasets: [
+            { label: 'Volta 1 (01:38.450)', data: lapData[1].speed, borderColor: '#64748b', tension: 0.3, borderWidth: 2 },
+            { label: 'Volta 2 BEST (01:36.800)', data: lapData[2].speed, borderColor: '#10b981', tension: 0.3, borderWidth: 3 },
+            { label: 'Volta 3 (01:37.210)', data: lapData[3].speed, borderColor: '#f59e0b', tension: 0.3, borderWidth: 2 }
+          ]
+        },
+        options: {
+          responsive: true,
+          plugins: { legend: { labels: { color: '#cbd5e1', font: { size: 11 } } } },
+          scales: {
+            x: { ticks: { color: '#94a3b8', font: { size: 10 } }, grid: { color: '#1e293b' } },
+            y: { ticks: { color: '#94a3b8' }, grid: { color: '#1e293b' }, title: { display: true, text: 'km/h', color: '#94a3b8' } }
+          }
+        }
+      });
+
+      const ctxLean = document.getElementById('leanChart').getContext('2d');
+      leanChart = new Chart(ctxLean, {
+        type: 'bar',
+        data: {
+          labels: sectors,
+          datasets: [
+            { type: 'line', label: 'Inclinação / Lean Angle (° - Volta 2)', data: lapData[2].lean, borderColor: '#f59e0b', backgroundColor: 'rgba(245,158,11,0.15)', tension: 0.3, borderWidth: 2.5, yAxisID: 'y' },
+            { type: 'bar', label: 'Pressão de Freio (bar x5)', data: lapData[2].brake.map(b => b * 5), backgroundColor: 'rgba(239,68,68,0.65)', borderRadius: 4, yAxisID: 'y' }
+          ]
+        },
+        options: {
+          responsive: true,
+          plugins: { legend: { labels: { color: '#cbd5e1', font: { size: 11 } } } },
+          scales: {
+            x: { ticks: { color: '#94a3b8', font: { size: 10 } }, grid: { color: '#1e293b' } },
+            y: { ticks: { color: '#94a3b8' }, grid: { color: '#1e293b' }, max: 65 }
+          }
+        }
+      });
+    }
+
+    function selectLap(mode) {
+      ['all', 1, 2, 3].forEach(m => {
+        const btn = document.getElementById(m === 'all' ? 'btn-all' : 'btn-lap' + m);
+        btn.className = (m === mode)
+          ? 'px-3 py-1.5 text-xs font-semibold rounded bg-red-600 text-white'
+          : 'px-3 py-1.5 text-xs font-semibold rounded bg-slate-800 text-slate-300 hover:bg-slate-700';
+      });
+
+      if (mode === 'all') {
+        speedChart.data.datasets.forEach(d => d.hidden = false);
+      } else {
+        speedChart.data.datasets.forEach((d, idx) => d.hidden = (idx + 1 !== mode));
+        leanChart.data.datasets[0].data = lapData[mode].lean;
+        leanChart.data.datasets[0].label = `Inclinação / Lean Angle (° - Volta ${mode})`;
+        leanChart.data.datasets[1].data = lapData[mode].brake.map(b => b * 5);
+      }
+      speedChart.update();
+      leanChart.update();
+    }
+
+    function calcPitSetup() {
+      // 1. Tire Pressure
+      const pAtm = 14.696;
+      const hotF = parseFloat(document.getElementById('hotFrontPsi').value) || 33;
+      const hotR = parseFloat(document.getElementById('hotRearPsi').value) || 26.5;
+      const tAmb = (parseFloat(document.getElementById('ambientTemp').value) || 24) + 273.15;
+      const tHot = (parseFloat(document.getElementById('trackTireTemp').value) || 82) + 273.15;
+
+      const coldF = ((hotF + pAtm) * (tAmb / tHot)) - pAtm;
+      const coldR = ((hotR + pAtm) * (tAmb / tHot)) - pAtm;
+
+      document.getElementById('outColdFront').textContent = coldF.toFixed(1) + ' PSI';
+      document.getElementById('outColdRear').textContent = coldR.toFixed(1) + ' PSI';
+      document.getElementById('outPsiGain').textContent = `+${(hotF - coldF).toFixed(1)} PSI (D) / +${(hotR - coldR).toFixed(1)} PSI (T)`;
+
+      // 2. Suspension Sag
+      const fSag = (parseFloat(document.getElementById('fL0').value) || 120) - (parseFloat(document.getElementById('fL2').value) || 89);
+      const rSag = (parseFloat(document.getElementById('rL0').value) || 130) - (parseFloat(document.getElementById('rL2').value) || 102);
+
+      const fStatus = fSag < 26 ? 'DURA (-Pré-carga)' : (fSag > 35 ? 'MACIA (+Pré-carga)' : 'IDEAL TRACKDAY');
+      const rStatus = rSag < 23 ? 'DURA (-Pré-carga)' : (rSag > 32 ? 'MACIA (+Pré-carga)' : 'IDEAL TRACKDAY');
+
+      const fEl = document.getElementById('outFrontSag');
+      const rEl = document.getElementById('outRearSag');
+      fEl.textContent = `${fSag.toFixed(0)} mm (${fStatus})`;
+      rEl.textContent = `${rSag.toFixed(0)} mm (${rStatus})`;
+      fEl.className = 'text-sm font-bold font-mono ' + (fStatus.includes('IDEAL') ? 'text-emerald-400' : 'text-amber-400');
+      rEl.className = 'text-sm font-bold font-mono ' + (rStatus.includes('IDEAL') ? 'text-emerald-400' : 'text-amber-400');
+
+      // 3. Gearing
+      const frontTeeth = parseFloat(document.getElementById('frontSprocket').value) || 15;
+      const rearTeeth = parseFloat(document.getElementById('rearSprocket').value) || 45;
+      const maxRpm = parseFloat(document.getElementById('maxRpm').value) || 13500;
+      const finalRatio = rearTeeth / frontTeeth;
+      const primaryRatio = 1.652;
+      const gearRatios = [2.583, 2.000, 1.667, 1.444, 1.286, 1.150];
+      const tireCircMeters = 2.015;
+
+      let html = `<div class="flex justify-between text-slate-400 border-b border-slate-800 pb-1 mb-1"><span>Relação Final: <strong class="text-white">${finalRatio.toFixed(2)}:1</strong></span><span>Vel. Máx @ ${maxRpm} RPM</span></div>`;
+      gearRatios.forEach((gRatio, i) => {
+        const wheelRpm = maxRpm / (primaryRatio * gRatio * finalRatio);
+        const speedKmh = (wheelRpm * tireCircMeters * 60) / 1000;
+        html += `<div class="flex justify-between"><span>${i + 1}ª Marcha:</span><span class="${i === 5 ? 'text-sky-400 font-bold' : 'text-slate-200'}">${speedKmh.toFixed(1)} km/h</span></div>`;
+      });
+      document.getElementById('gearingTable').innerHTML = html;
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      initCharts();
+      calcPitSetup();
+    });
+  </script>
+</body>
+</html>
